@@ -5,11 +5,14 @@
  *      Author: ricardo
  */
 
+#include <queue/queue.h>
+#include <stack/stack.h>
 #include <stdio.h>
 
-#include "queue/queues.h"
 
 queue_t my_queue = QUEUE_INITIALIZE(4, 3);
+stack_t my_stack = STACK_INITIALIZE(4, 3);
+
 // queue_t my_queue = QUEUE_INITIALIZE_WITH_VALUES(4,3,1,0xdeadbeef);
 
 int main(int argc, char ** argv)
@@ -35,6 +38,19 @@ int main(int argc, char ** argv)
     queue_get(&my_queue, &test, 4);
     printf("queue_get: %x (size = %d).\n", test, my_queue.queue_size);
 
+
+    stack_push(&my_stack, (uint8_t[4]){1,2,3,4}, 4);
+    stack_push(&my_stack, (uint8_t[4]){5,6,7,8}, 4);
+    stack_push(&my_stack, (uint8_t[4]){9,8,7,6}, 4);
+    stack_push(&my_stack, (uint8_t[4]){5,4,3,2}, 4);
+    stack_pop(&my_stack, &test, 4);
+	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
+	stack_pop(&my_stack, &test, 4);
+	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
+	stack_pop(&my_stack, &test, 4);
+	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
+	stack_pop(&my_stack, &test, 4);
+	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
 
     return 0;
 }

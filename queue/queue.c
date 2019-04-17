@@ -5,7 +5,7 @@
  *      Author: ricardo
  */
 
-#include "queues.h"
+#include <queue/queue.h>
 #include <string.h>
 
 
@@ -90,6 +90,14 @@ queue_ret_t queue_get(queue_t * queue, void * item_buffer, size_t item_size)
     if(result == NULL)
         return QUEUE_FAIL;
 
+    result = memset(
+    		(void *) &queue->buffer[queue->get_index * queue->element_size],
+			0,
+			queue->element_size);
+
+    if(result == NULL)
+		return QUEUE_FAIL;
+
     queue->get_index = (queue->get_index + 1) % queue->queue_capacity;
     queue->queue_size--;
 
@@ -112,5 +120,8 @@ queue_ret_t queue_clear(queue_t * queue)
     if(result == NULL)
             return QUEUE_FAIL;
 
-    return QUEUE_FAIL;
+    queue->queue_size = 0;
+	queue->get_index = 0;
+
+    return QUEUE_SUCCESS;
 }
