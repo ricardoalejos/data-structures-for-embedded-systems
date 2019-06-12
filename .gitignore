@@ -1,4 +1,5 @@
 Debug/*
+.vscode/*
 .cproject
 .project
 .settings/*

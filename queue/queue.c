@@ -5,7 +5,7 @@
  *      Author: ricardo
  */
 
-#include <queue/queue.h>
+#include "queue.h"
 #include <string.h>
 
 

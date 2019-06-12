@@ -5,7 +5,7 @@
  *      Author: ricardo
  */
 
-#include "stack/stack.h"
+#include "stack.h"
 #include "stddef.h"
 #include "string.h"
 
