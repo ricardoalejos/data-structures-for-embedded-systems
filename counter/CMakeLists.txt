@@ -1,2 +1,6 @@
+set(module_name counter)
 file(GLOB source_files "./*.c")
-add_library(counter ${source_files})
+file(GLOB header_files "./*.h")
+add_library(${module_name} ${source_files})
+set_target_properties(${module_name} PROPERTIES PUBLIC_HEADER ${header_files})
+INSTALL(TARGETS ${module_name} DESTINATION ${project_root}/lib PUBLIC_HEADER DESTINATION ${project_root}/include)

@@ -7,5 +7,6 @@ Debug/*
 **/CMakeFiles/
 bin
 lib
+include
 CMakeCache.txt
 *.cmake

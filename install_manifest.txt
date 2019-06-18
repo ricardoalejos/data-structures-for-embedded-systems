@@ -1,0 +1,5 @@
+/home/ricardo/repositories/data-structures-for-embedded-systems/include/queue.h
+/home/ricardo/repositories/data-structures-for-embedded-systems/include/stack.h
+/home/ricardo/repositories/data-structures-for-embedded-systems/include/gpio.h
+/home/ricardo/repositories/data-structures-for-embedded-systems/include/counter.h
+/home/ricardo/repositories/data-structures-for-embedded-systems/include/sem.h
