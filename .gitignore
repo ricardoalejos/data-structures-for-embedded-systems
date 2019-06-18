@@ -3,3 +3,9 @@ Debug/*
 .cproject
 .project
 .settings/*
+**/Makefile
+**/CMakeFiles/
+bin
+lib
+CMakeCache.txt
+*.cmake
