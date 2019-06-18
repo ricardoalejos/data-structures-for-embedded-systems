@@ -11,6 +11,7 @@ include_directories(".")
 
 add_subdirectory(queue)
 add_subdirectory(stack)
+add_subdirectory(gpio)
 add_subdirectory(counter)
 add_subdirectory(semaphore)
 add_subdirectory(examples)
