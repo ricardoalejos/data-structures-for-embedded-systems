@@ -63,6 +63,29 @@ Gpio_tRetVal Gpio_fReadData(Gpio_t * iGpio, Gpio_tDataValue * oValue);
 Gpio_tRetVal Gpio_fToggleData(Gpio_t * iGpio);
 Gpio_tRetVal Gpio_fInterruptEnable(Gpio_t * iGpio);
 Gpio_tRetVal Gpio_fInterruptDisable(Gpio_t * iGpio);
+
+/*  Name
+        Gpio_fNotifyInterrupt
+    Description
+            This function forwards the interrupt notification to the
+        Gpio.vInterruptNotification callback. Call this function within
+        the ISR that corresponds to the interruption of the passed GPIO.
+            Warning: All the structure members that are pointers must be
+        initialized. Otherwise, this function could de-reference a null
+        pointer.
+    Arguments
+        Gpio_t * iGpio
+                Pointer to the GPIO instance that corresponds to the ISR in
+            which this function is invoked.
+    Return value
+        GPIO__C_FAIL
+                The Gpio.vInterruptNotification callback returned a value 
+            different than zero (assuming it ran into an error or
+            unexpected behavior).
+        GPIO__C_SUCCESS
+                The Gpio.vInterruptNotification callback returned zero. It
+            is assumed that it ran correctly and successfully.
+*/
 Gpio_tRetVal Gpio_fNotifyInterrupt(Gpio_t * iGpio);
 
 #endif
