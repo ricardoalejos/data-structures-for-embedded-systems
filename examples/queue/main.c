@@ -17,51 +17,81 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "queue/queue.h"
-#include "stack/stack.h"
 #include <stdio.h>
 
+#define C_QUEUE_SIZE          32
+#define C_TEST_MESSAGE        "Hello queues!"
+#define C_ACCESS_SIZE         4
 
-queue_t my_queue = QUEUE_INITIALIZE(4, 3);
-stack_t my_stack = STACK_INITIALIZE(4, 3);
+uint32_t fQueueTests();
+uint32_t fFakeSemaphoreTake(void * iSemaphore);
+uint32_t fFakeSemaphoreGive(void * iSemaphore);
 
-// queue_t my_queue = QUEUE_INITIALIZE_WITH_VALUES(4,3,1,0xdeadbeef);
 
 int main(int argc, char ** argv)
 {
-    bool response;
-    uint32_t test;
-
-    printf("Executing data_structures.\n");
-
-    queue_put(&my_queue, (uint8_t[4]){0xba, 0xca, 0xca, 0xfe}, 4);
-    queue_put(&my_queue, (uint8_t[4]){0x1, 0x2, 0x3, 0x4}, 4);
-    queue_put(&my_queue, (uint8_t[4]){0x5, 0x6, 0x7, 0x8}, 4);
-    queue_put(&my_queue, (uint8_t[4]){0x9, 0xa, 0xb, 0xc}, 4);
-    queue_is_empty(&my_queue, &response);
-    printf("queue_is_empty: %d (size = %d).\n", response, my_queue.queue_size);
-
-    queue_get(&my_queue, &test, 4);
-    printf("queue_get: %x (size = %d).\n", test, my_queue.queue_size);
-    queue_get(&my_queue, &test, 4);
-    printf("queue_get: %x (size = %d).\n", test, my_queue.queue_size);
-    queue_get(&my_queue, &test, 4);
-    printf("queue_get: %x (size = %d).\n", test, my_queue.queue_size);
-    queue_get(&my_queue, &test, 4);
-    printf("queue_get: %x (size = %d).\n", test, my_queue.queue_size);
-
-
-    stack_push(&my_stack, (uint8_t[4]){1,2,3,4}, 4);
-    stack_push(&my_stack, (uint8_t[4]){5,6,7,8}, 4);
-    stack_push(&my_stack, (uint8_t[4]){9,8,7,6}, 4);
-    stack_push(&my_stack, (uint8_t[4]){5,4,3,2}, 4);
-    stack_pop(&my_stack, &test, 4);
-	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
-	stack_pop(&my_stack, &test, 4);
-	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
-	stack_pop(&my_stack, &test, 4);
-	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
-	stack_pop(&my_stack, &test, 4);
-	printf("stack_pop: %x (size = %d).\n", test, my_stack.stack_size);
-
+    fQueueTests();
     return 0;
+}
+
+
+uint32_t fFakeSemaphoreTake(void * iSemaphore)
+{
+    return 0;
+}
+
+
+uint32_t fFakeSemaphoreGive(void * iSemaphore)
+{
+    return 0;
+}
+
+
+uint32_t fQueueTests()
+{
+    Queue_tSemaphoreInterface vFakeSemaphoreInterface = {
+        .fTake = fFakeSemaphoreTake,
+        .fGive = fFakeSemaphoreGive
+    };
+
+    Queue_t vExampleQueue = {
+        .vLength = C_QUEUE_SIZE,
+        .vCount = 0,
+        .vPutIndex = 0,
+        .vGetIndex = 0,
+        .vData = (void*)((uint8_t [C_QUEUE_SIZE]){0}),
+        .vSemaphore = (void *) 0,
+        .vSemaphoreInterface = &vFakeSemaphoreInterface
+    };
+
+    uint8_t vInputBuffer[] = C_TEST_MESSAGE;
+    uint8_t vOutputBuffer[sizeof(vInputBuffer)];
+    uint8_t vAuxiliarIndex;
+    Queue_tRetVal vRetVal;
+
+    // Send data through the queue
+    for (vAuxiliarIndex = 0; vAuxiliarIndex < sizeof(vInputBuffer); vAuxiliarIndex+=C_ACCESS_SIZE)
+        vRetVal = Queue_fPut(&vExampleQueue, &(vInputBuffer[vAuxiliarIndex]), C_ACCESS_SIZE);
+
+    // Verify if the queue is full
+    if(Queue_fIsQueueFull(&vExampleQueue) == QUEUE__C_TRUE)
+        puts("The queue is full.");
+
+    // See the tip of the queue
+    vRetVal = Queue_fPeek(&vExampleQueue, (void *)vOutputBuffer, C_ACCESS_SIZE); 
+    for (vAuxiliarIndex = 0; vAuxiliarIndex < C_ACCESS_SIZE; vAuxiliarIndex++)
+        putc(vOutputBuffer[vAuxiliarIndex], stdout);
+    putc('\n', stdout);
+
+    // Get the data from the queue
+    for (vAuxiliarIndex = 0; vAuxiliarIndex < sizeof(vInputBuffer); vAuxiliarIndex+=C_ACCESS_SIZE)
+        vRetVal = Queue_fGet(&vExampleQueue, &(vOutputBuffer[vAuxiliarIndex]), C_ACCESS_SIZE); 
+
+    // Verify it is empty
+    if(Queue_fIsQueueEmpty(&vExampleQueue) == QUEUE__C_TRUE)
+        puts("The queue is empty.");
+
+    printf("%s\n", vOutputBuffer);
+
+    return (uint32_t) vRetVal;
 }

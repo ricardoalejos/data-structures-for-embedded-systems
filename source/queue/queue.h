@@ -16,46 +16,55 @@
  * along with DSFES.  If not, see <https://www.gnu.org/licenses/>.            *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef QUEUE_QUEUES_H_
-#define QUEUE_QUEUES_H_
+#ifndef _QUEUES_H_
+#define _QUEUES_H_
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
 
-typedef struct queue_s
+typedef enum Queue_eRetVal
 {
-    volatile uint32_t queue_size;
-    volatile uint32_t get_index;
-    const size_t element_size;
-    const uint32_t queue_capacity;
-    volatile uint8_t * buffer;
-} queue_t;
+    QUEUE__C_SUCESS,
+    QUEUE__C_FAIL,
+    QUEUE__C_TRUE,
+    QUEUE__C_FALSE,
+    QUEUE__C_ERROR_QUEUE_IS_FULL,
+    QUEUE__C_ERROR_QUEUE_IS_EMPTY,
+    QUEUE__C_ERROR_IS_NULL,
+    QUEUE__C_ERROR_SEMAPHORE_TAKE,
+    QUEUE__C_ERROR_SEMAPHORE_GIVE,
+    QUEUE__C_ERROR_DATA_DOES_NOT_FIT,
+    QUEUE__C_ERROR_NOT_ENOUGH_DATA
+} Queue_tRetVal;
 
-typedef enum queue_ret_e
+typedef uint32_t (* Queue_tSemaphoreCallback)(void * iSemaphore);
+
+typedef struct Queue_sSemaphoreInterface
 {
-    QUEUE_SUCCESS,
-    QUEUE_FAIL
-} queue_ret_t;
+    Queue_tSemaphoreCallback fTake;
+    Queue_tSemaphoreCallback fGive;
+} Queue_tSemaphoreInterface;
 
-#define QUEUE_INITIALIZE(e_size, q_capacity)  {             \
-    .element_size = e_size,                                 \
-    .queue_capacity = q_capacity,                           \
-    .queue_size = 0,                                        \
-    .get_index = 0,                                         \
-    .buffer = (volatile uint8_t [e_size * q_capacity]){0}}
+typedef struct Queue_s
+{
+    const uint32_t vLength;
+    volatile uint32_t vCount;
+    volatile uint32_t vPutIndex;
+    volatile uint32_t vGetIndex;
+    void * vData;
+    const Queue_tSemaphoreInterface * vSemaphoreInterface;
+    void * vSemaphore;
+} Queue_t;
 
-#define QUEUE_INITIALIZE_WITH_VALUES(e_size, q_capacity, n_items, ...) {    \
-    .element_size = e_size,                                                 \
-    .queue_capacity = q_capacity,                                           \
-    .queue_size = n_items,                                                  \
-    .get_index = 0,                                                         \
-    .buffer = (volatile uint8_t [e_size * q_capacity]){__VA_ARGS__}}
+#define QUEUE__M_DATA_INITIALIZER(size, fill) ((void *)((uint8_t [size]){fill}))
 
-queue_ret_t queue_is_full(queue_t * queue, bool * response);
-queue_ret_t queue_is_empty(queue_t * queue, bool * response);
-queue_ret_t queue_put(queue_t * queue, void * item_buffer, size_t item_size);
-queue_ret_t queue_get(queue_t * queue, void * item_buffer, size_t item_size);
-queue_ret_t queue_clear(queue_t * queue);
+Queue_tRetVal Queue_fIsQueueFull(Queue_t * iQueue);
+Queue_tRetVal Queue_fIsQueueEmpty(Queue_t * iQueue);
+Queue_tRetVal Queue_fClear(Queue_t * iQueue);
+Queue_tRetVal Queue_fGetCount(Queue_t * iQueue, uint32_t * oCount);
+Queue_tRetVal Queue_fGetCapacity(Queue_t * iQueue, uint32_t * oCapacity);
+Queue_tRetVal Queue_fPut(Queue_t * iQueue, void * iDataBuffer, uint32_t iDataBufferSize);
+Queue_tRetVal Queue_fGet(Queue_t * iQueue, void * oDataBuffer, uint32_t iDataBufferSize);
+Queue_tRetVal Queue_fPeek(Queue_t * iQueue, void * oDataBuffer, uint32_t iDataBufferSize);
 
-#endif /* QUEUE_QUEUES_H_ */
+
+#endif /* _QUEUES_H_ */

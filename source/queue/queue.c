@@ -19,118 +19,182 @@
 #include "queue.h"
 #include <string.h>
 
+#define PRV__M_TRY_SEM_TAKE(iQueuePtr)                                        \
+    if(iQueuePtr->vSemaphoreInterface->fTake(iQueuePtr->vSemaphore) != 0)     \
+        return QUEUE__C_ERROR_SEMAPHORE_TAKE
 
-queue_ret_t queue_is_full(queue_t * queue, bool * response)
+
+#define PRV__M_TRY_SEM_GIVE(iQueuePtr)                                        \
+    if(iQueuePtr->vSemaphoreInterface->fGive(iQueuePtr->vSemaphore) != 0)     \
+        return QUEUE__C_ERROR_SEMAPHORE_GIVE
+
+#define PRV__M_CHECK_NULL(iPointer)                                           \
+    if(!iPointer)                                                             \
+        return QUEUE__C_ERROR_IS_NULL
+
+#define PRV__M_INDEX_BYTE(iBuffer, iIndex)  (((uint8_t *)iBuffer)[iIndex])
+
+
+Queue_tRetVal Queue_fIsQueueFull(Queue_t * iQueue)
 {
-    if(queue == NULL)
-        return QUEUE_FAIL;
+    PRV__M_CHECK_NULL(iQueue);
 
-    if (queue->queue_size >= queue->queue_capacity)
-        *response = true;
+    if (iQueue->vCount >= iQueue->vLength)
+        return QUEUE__C_TRUE;
     else
-        *response = false;
-
-    return QUEUE_SUCCESS;
+        return QUEUE__C_FALSE;
 }
 
 
-queue_ret_t queue_is_empty(queue_t * queue, bool * response)
+Queue_tRetVal Queue_fIsQueueEmpty(Queue_t * iQueue)
 {
-    if(queue == NULL)
-        return QUEUE_FAIL;
+    PRV__M_CHECK_NULL(iQueue);
 
-    if (queue->queue_size == 0)
-        *response = true;
+    if (iQueue->vCount == 0)
+        return QUEUE__C_TRUE;
     else
-        *response = false;
-
-    return QUEUE_SUCCESS;
+        return QUEUE__C_FALSE;
 }
 
 
-queue_ret_t queue_put(queue_t * queue, void * item_buffer, size_t item_size)
+Queue_tRetVal Queue_fPut(Queue_t * iQueue, void * iDataBuffer, uint32_t iDataBufferSize)
 {
-    void * result;
-    bool is_full;
-    uint32_t put_index;
+    uint32_t vDataBufferIndex;
 
-    if(queue == NULL || item_size > queue->element_size)
-        return QUEUE_FAIL;
+    PRV__M_CHECK_NULL(iQueue);
+    PRV__M_CHECK_NULL(iDataBuffer);
+    PRV__M_TRY_SEM_TAKE(iQueue);
 
-    queue_is_full(queue, &is_full);
+    if (Queue_fIsQueueFull(iQueue) == QUEUE__C_TRUE)
+    {
+        PRV__M_TRY_SEM_GIVE(iQueue);
+        return QUEUE__C_ERROR_QUEUE_IS_FULL;
+    }
 
-    if(is_full)
-        return QUEUE_FAIL;
+    if (iQueue->vLength - iQueue->vCount < iDataBufferSize)
+    {
+        PRV__M_TRY_SEM_GIVE(iQueue);
+        return QUEUE__C_ERROR_DATA_DOES_NOT_FIT;
+    }
 
-    put_index = (queue->get_index + queue->queue_size) % queue->queue_capacity;
+    for(vDataBufferIndex = 0; vDataBufferIndex < iDataBufferSize; vDataBufferIndex++)
+    {
+        PRV__M_INDEX_BYTE(iQueue->vData, iQueue->vPutIndex) = PRV__M_INDEX_BYTE(iDataBuffer, vDataBufferIndex);
+        iQueue->vPutIndex++;
+        iQueue->vPutIndex %= iQueue->vLength;
+    }
 
-    result = memcpy(
-            (void *) &queue->buffer[put_index * queue->element_size],
-            item_buffer,
-            item_size);
+    iQueue->vCount += iDataBufferSize;
 
-    if(result == NULL)
-        return QUEUE_FAIL;
+    PRV__M_TRY_SEM_GIVE(iQueue);
 
-    queue->queue_size++;
-
-    return QUEUE_SUCCESS;
+    return QUEUE__C_SUCESS;
 }
 
 
-queue_ret_t queue_get(queue_t * queue, void * item_buffer, size_t item_size)
+Queue_tRetVal Queue_fGet(Queue_t * iQueue, void * oDataBuffer, uint32_t iDataBufferSize)
 {
-    void * result;
-    bool is_empty;
+    uint32_t vDataBufferIndex;
 
-    if(queue == NULL || item_size > queue->element_size)
-        return QUEUE_FAIL;
+    PRV__M_CHECK_NULL(iQueue);
+    PRV__M_CHECK_NULL(oDataBuffer);
+    PRV__M_TRY_SEM_TAKE(iQueue);
 
-    queue_is_empty(queue, &is_empty);
+    if (Queue_fIsQueueEmpty(iQueue) == QUEUE__C_TRUE)
+    {
+        PRV__M_TRY_SEM_GIVE(iQueue);
+        return QUEUE__C_ERROR_QUEUE_IS_EMPTY;
+    }
 
-    if(is_empty)
-        return QUEUE_FAIL;
+    if (iQueue->vCount < iDataBufferSize)
+    {
+        PRV__M_TRY_SEM_GIVE(iQueue);
+        return QUEUE__C_ERROR_NOT_ENOUGH_DATA;
+    }
 
-    result = memcpy(
-            item_buffer,
-            (void *) &queue->buffer[queue->get_index * queue->element_size],
-            item_size);
+    for(vDataBufferIndex = 0; vDataBufferIndex < iDataBufferSize; vDataBufferIndex++)
+    {
+        PRV__M_INDEX_BYTE(oDataBuffer, vDataBufferIndex) = PRV__M_INDEX_BYTE(iQueue->vData, iQueue->vGetIndex);
+        iQueue->vGetIndex++;
+        iQueue->vGetIndex %= iQueue->vLength;
+    }
 
-    if(result == NULL)
-        return QUEUE_FAIL;
+    iQueue->vCount -= iDataBufferSize;
 
-    result = memset(
-    		(void *) &queue->buffer[queue->get_index * queue->element_size],
-			0,
-			queue->element_size);
+    PRV__M_TRY_SEM_GIVE(iQueue);
 
-    if(result == NULL)
-		return QUEUE_FAIL;
-
-    queue->get_index = (queue->get_index + 1) % queue->queue_capacity;
-    queue->queue_size--;
-
-    return QUEUE_SUCCESS;
+    return QUEUE__C_SUCESS;
 }
 
 
-queue_ret_t queue_clear(queue_t * queue)
+Queue_tRetVal Queue_fClear(Queue_t * iQueue)
 {
-    void * result;
+    PRV__M_CHECK_NULL(iQueue);
+    PRV__M_TRY_SEM_TAKE(iQueue);
 
-    if(queue == NULL)
-        return QUEUE_FAIL;
+    memset(iQueue->vData, 0x00, iQueue->vLength);
+    iQueue->vPutIndex = 0;
+    iQueue->vGetIndex = 0;
+    iQueue->vCount = 0;
 
-    result = memset(
-            (void *) queue->buffer,
-            0,
-            queue->element_size * queue->queue_capacity);
+    PRV__M_TRY_SEM_GIVE(iQueue);
+    return QUEUE__C_SUCESS;
+}
 
-    if(result == NULL)
-            return QUEUE_FAIL;
 
-    queue->queue_size = 0;
-	queue->get_index = 0;
+Queue_tRetVal Queue_fPeek(Queue_t * iQueue, void * oDataBuffer, uint32_t iDataBufferSize)
+{
+    uint32_t vDataBufferIndex;
+    uint32_t vTempGetIndex;
 
-    return QUEUE_SUCCESS;
+    PRV__M_CHECK_NULL(iQueue);
+    PRV__M_CHECK_NULL(oDataBuffer);
+    PRV__M_TRY_SEM_TAKE(iQueue);
+
+    if (Queue_fIsQueueEmpty(iQueue) == QUEUE__C_TRUE)
+    {
+        PRV__M_TRY_SEM_GIVE(iQueue);
+        return QUEUE__C_ERROR_QUEUE_IS_EMPTY;
+    }
+
+    if (iQueue->vCount < iDataBufferSize)
+    {
+        PRV__M_TRY_SEM_GIVE(iQueue);
+        return QUEUE__C_ERROR_NOT_ENOUGH_DATA;
+    }
+
+    vTempGetIndex = iQueue->vGetIndex;
+
+    for(vDataBufferIndex = 0; vDataBufferIndex < iDataBufferSize; vDataBufferIndex++)
+    {
+        PRV__M_INDEX_BYTE(oDataBuffer, vDataBufferIndex) = PRV__M_INDEX_BYTE(iQueue->vData, vTempGetIndex);
+        vTempGetIndex++;
+        vTempGetIndex %= iQueue->vLength;
+    }
+
+    PRV__M_TRY_SEM_GIVE(iQueue);
+
+    return QUEUE__C_SUCESS;
+}
+
+
+Queue_tRetVal Queue_fGetCount(Queue_t * iQueue, uint32_t * oCount)
+{
+    PRV__M_CHECK_NULL(iQueue);
+    PRV__M_CHECK_NULL(oCount);
+
+    *oCount = iQueue->vCount;
+
+    return QUEUE__C_SUCESS;
+}
+
+
+Queue_tRetVal Queue_fGetCapacity(Queue_t * iQueue, uint32_t * oCapacity)
+{
+    PRV__M_CHECK_NULL(iQueue);
+    PRV__M_CHECK_NULL(oCapacity);
+
+    *oCapacity = iQueue->vLength - iQueue->vCount;
+
+    return QUEUE__C_SUCESS;
 }
