@@ -16,37 +16,49 @@
  * along with DSFES.  If not, see <https://www.gnu.org/licenses/>.            *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef DATA_STRUCTURES_FOR_EMBEDDED_SYSTEMS_STACK_STACK_H_
-#define DATA_STRUCTURES_FOR_EMBEDDED_SYSTEMS_STACK_STACK_H_
+#ifndef _STACK_H_
+#define _STACK_H_
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
 
-typedef struct stack_s
+typedef enum Stack_tRetVal
 {
-    volatile uint32_t stack_size;
-    const size_t element_size;
-    const uint32_t stack_capacity;
-    volatile uint8_t * buffer;
-} stack_t;
+    STACK__C_SUCCESS,
+    STACK__C_FAIL,
+    STACK__C_TRUE,
+    STACK__C_FALSE,
+    STACK__C_ERROR_IS_NULL,
+    STACK__C_ERROR_SEMAPHORE_GIVE,
+    STACK__C_ERROR_SEMAPHORE_TAKE,
+    STACK__C_ERROR_STACK_IS_EMPTY,
+    STACK__C_ERROR_STACK_IS_FULL,
+    STACK__C_ERROR_NOT_ENOUGH_DATA,
+    STACK__C_ERROR_DATA_DOES_NOT_FIT
+} Stack_tRetVal;
 
-typedef enum stack_ret_e
+typedef uint32_t (*Stack_tSemaphoreCallback)(void * iSemaphore);
+
+typedef struct Stack_sSemaphoreInterface
 {
-    STACK_SUCCESS,
-    STACK_FAIL
-} stack_ret_t;
+    Stack_tSemaphoreCallback fTake;
+    Stack_tSemaphoreCallback fGive;
+} Stack_tSemaphoreInterface;
 
-#define STACK_INITIALIZE(e_size, s_capacity)  {             \
-    .element_size = e_size,                                 \
-    .stack_capacity = s_capacity,                           \
-    .stack_size = 0,                                        \
-    .buffer = (volatile uint8_t [e_size * s_capacity]){0}}
+typedef struct Stack_s
+{
+    const uint32_t vLength;
+    volatile uint32_t vCount;
+    void * vData;
+    void * vSemaphore;
+    Stack_tSemaphoreInterface * vSemaphoreInterface;
+} Stack_t;
 
-stack_ret_t stack_is_full(stack_t * stack, bool * response);
-stack_ret_t stack_is_empty(stack_t * stack, bool * response);
-stack_ret_t stack_push(stack_t * stack, void * item_buffer, size_t item_size);
-stack_ret_t stack_pop(stack_t * stack, void * item_buffer, size_t item_size);
-stack_ret_t stack_clear(stack_t * stack);
+Stack_tRetVal Stack_fPush(Stack_t * iStack, void * iDataBuffer, uint32_t iDataBufferSize);
+Stack_tRetVal Stack_fPop(Stack_t * iStack, void * oDataBuffer, uint32_t iDataBufferSize);
+Stack_tRetVal Stack_fPeek(Stack_t * iStack, void * oDataBuffer, uint32_t iDataBufferSize);
+Stack_tRetVal Stack_fClear(Stack_t * iStack);
+Stack_tRetVal Stack_fIsStackFull(Stack_t * iStack);
+Stack_tRetVal Stack_fIsStackEmpty(Stack_t * iStack);
+Stack_tRetVal Stack_fGetCount(Stack_t * iStack, uint32_t * oCount);
 
-#endif /* DATA_STRUCTURES_FOR_EMBEDDED_SYSTEMS_STACK_STACK_H_ */
+#endif /* _STACK_H_ */

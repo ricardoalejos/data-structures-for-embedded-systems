@@ -16,7 +16,6 @@
 # along with DSFES.  If not, see <https://www.gnu.org/licenses/>.             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-add_subdirectory(counter)
-add_subdirectory(gpio)
-add_subdirectory(queue)
-add_subdirectory(stack)
+file(GLOB source_files "./*.c")
+add_executable(stack_example ${source_files})
+target_link_libraries(stack_example queue stack)

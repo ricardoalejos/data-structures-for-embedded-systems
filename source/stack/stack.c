@@ -17,115 +17,141 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "stack.h"
-#include "stddef.h"
-#include "string.h"
+#include <string.h>
+
+#define PRV__M_TRY_SEM_TAKE(iStackPtr)                                        \
+    if(iStackPtr->vSemaphoreInterface->fTake(iStackPtr->vSemaphore) != 0)     \
+        return STACK__C_ERROR_SEMAPHORE_TAKE
 
 
-stack_ret_t stack_is_full(stack_t * stack, bool * response)
+#define PRV__M_TRY_SEM_GIVE(iStackPtr)                                        \
+    if(iStackPtr->vSemaphoreInterface->fGive(iStackPtr->vSemaphore) != 0)     \
+        return STACK__C_ERROR_SEMAPHORE_GIVE
+
+#define PRV__M_CHECK_NULL(iPointer)                                           \
+    if(!iPointer)                                                             \
+        return STACK__C_ERROR_IS_NULL
+
+#define PRV__M_INDEX_BYTE(iBuffer, iIndex)  (((uint8_t *)iBuffer)[iIndex])
+
+
+Stack_tRetVal Stack_fIsStackFull(Stack_t * iStack)
 {
-	if(stack == NULL)
-		return STACK_FAIL;
+    PRV__M_CHECK_NULL(iStack);
 
-	if(stack->stack_size >= stack->stack_capacity)
-		*response = true;
-	else
-		*response = false;
-
-	return STACK_SUCCESS;
+    if(iStack->vCount == iStack->vLength)
+        return STACK__C_TRUE;
+    else
+        return STACK__C_FALSE;
 }
 
 
-stack_ret_t stack_is_empty(stack_t * stack, bool * response)
+Stack_tRetVal Stack_fIsStackEmpty(Stack_t * iStack)
 {
-	if(stack == NULL)
-		return STACK_FAIL;
+    PRV__M_CHECK_NULL(iStack);
 
-	if(stack->stack_size == 0)
-		*response = true;
-	else
-		*response = false;
-
-	return STACK_SUCCESS;
+    if(iStack->vCount == 0)
+        return STACK__C_TRUE;
+    else
+        return STACK__C_FALSE;
 }
 
 
-stack_ret_t stack_push(stack_t * stack, void * item_buffer, size_t item_size)
+Stack_tRetVal Stack_fPush(Stack_t * iStack, void * iDataBuffer, uint32_t iDataBufferSize)
 {
-	bool is_full;
-	void * memcpy_return_value;
+    uint32_t vBufferIndex;
 
-	if(stack_is_full(stack, &is_full) == STACK_FAIL)
-		return STACK_FAIL;
+    PRV__M_CHECK_NULL(iStack);
 
-	if(stack->element_size < item_size || is_full)
-		return STACK_FAIL;
+    if(Stack_fIsStackFull(iStack) == STACK__C_TRUE)
+        return STACK__C_ERROR_STACK_IS_FULL;
 
-	memcpy_return_value = memcpy(
-			(void *) &stack->buffer[stack->stack_size * stack->element_size],
-			item_buffer,
-			item_size);
+    if(iStack->vLength - iStack->vCount < iDataBufferSize)
+        return STACK__C_ERROR_DATA_DOES_NOT_FIT;
 
-	if (memcpy_return_value == NULL)
-		return STACK_FAIL;
+    PRV__M_TRY_SEM_TAKE(iStack);
 
-	stack->stack_size++;
+    for(vBufferIndex = 0; vBufferIndex < iDataBufferSize; vBufferIndex++)
+    {
+        PRV__M_INDEX_BYTE(iStack->vData, iStack->vCount) = PRV__M_INDEX_BYTE(iDataBuffer, vBufferIndex);
+        iStack->vCount++;
+    }
 
-	return STACK_SUCCESS;
+    PRV__M_TRY_SEM_GIVE(iStack);
+    return STACK__C_SUCCESS;
 }
 
 
-stack_ret_t stack_pop(stack_t * stack, void * item_buffer, size_t item_size)
+Stack_tRetVal Stack_fPop(Stack_t * iStack, void * oDataBuffer, uint32_t iDataBufferSize)
 {
-	bool is_empty;
-	void * memcpy_return_value;
-	void * memset_return_value;
+    uint32_t vBufferIndex;
 
-	if(stack_is_empty(stack, &is_empty) == STACK_FAIL)
-		return STACK_FAIL;
+    PRV__M_CHECK_NULL(iStack);
 
-	if(is_empty || item_size > stack->element_size)
-		return STACK_FAIL;
+    if(Stack_fIsStackEmpty(iStack) == STACK__C_TRUE)
+        return STACK__C_ERROR_STACK_IS_EMPTY;
 
-	memcpy_return_value = memcpy(
-			item_buffer,
-			(void *) &stack->buffer[(stack->stack_size - 1) * stack->element_size],
-			item_size);
+    if(iStack->vCount < iDataBufferSize)
+        return STACK__C_ERROR_NOT_ENOUGH_DATA;
 
-	if (memcpy_return_value == NULL)
-		return STACK_FAIL;
+    PRV__M_TRY_SEM_TAKE(iStack);
 
-	memset_return_value = memset(
-			(void *) &stack->buffer[(stack->stack_size - 1) * stack->element_size],
-			0,
-			stack->element_size);
+    for(vBufferIndex = 0; vBufferIndex < iDataBufferSize; vBufferIndex++)
+    {
+        PRV__M_INDEX_BYTE(oDataBuffer, vBufferIndex) = PRV__M_INDEX_BYTE(iStack->vData, iStack->vCount - 1);
+        iStack->vCount--;
+    }
 
-	if (memset_return_value == NULL)
-		return STACK_FAIL;
-
-	stack->stack_size--;
-
-	return STACK_SUCCESS;
+    PRV__M_TRY_SEM_GIVE(iStack);
+    return STACK__C_SUCCESS;
 }
 
 
-stack_ret_t stack_clear(stack_t * stack)
+Stack_tRetVal Stack_fPeek(Stack_t * iStack, void * oDataBuffer, uint32_t iDataBufferSize)
 {
-	void * memset_return_value;
+    uint32_t vBufferIndex;
+    uint32_t vTemporalCount;
 
-	if(stack == NULL)
-		return STACK_FAIL;
+    PRV__M_CHECK_NULL(iStack);
 
-	memset_return_value = memset(
-			(void *) stack->buffer,
-			0,
-			stack->element_size * stack->stack_capacity);
+    if(Stack_fIsStackEmpty(iStack) == STACK__C_TRUE)
+        return STACK__C_ERROR_STACK_IS_EMPTY;
 
-	stack->stack_size = 0;
+    if(iStack->vCount < iDataBufferSize)
+        return STACK__C_ERROR_NOT_ENOUGH_DATA;
 
-	if (memset_return_value == NULL)
-		return STACK_FAIL;
+    PRV__M_TRY_SEM_TAKE(iStack);
 
-	return STACK_SUCCESS;
+    vTemporalCount = iStack->vCount;
+
+    for(vBufferIndex = 0; vBufferIndex < iDataBufferSize; vBufferIndex++)
+    {
+        PRV__M_INDEX_BYTE(oDataBuffer, vBufferIndex) = PRV__M_INDEX_BYTE(iStack->vData, vTemporalCount - 1);
+        vTemporalCount--;
+    }
+
+    PRV__M_TRY_SEM_GIVE(iStack);
+    return STACK__C_SUCCESS;
 }
 
 
+Stack_tRetVal Stack_fClear(Stack_t * iStack)
+{
+    PRV__M_CHECK_NULL(iStack);
+    PRV__M_TRY_SEM_TAKE(iStack);
+
+    memset(iStack->vData, 0x00, iStack->vLength);
+
+    PRV__M_TRY_SEM_GIVE(iStack);
+    return STACK__C_SUCCESS;
+}
+
+
+Stack_tRetVal Stack_fGetCount(Stack_t * iStack, uint32_t * oCount)
+{
+    PRV__M_CHECK_NULL(iStack);
+
+    *oCount = iStack->vCount;
+
+    return STACK__C_SUCCESS;
+}
