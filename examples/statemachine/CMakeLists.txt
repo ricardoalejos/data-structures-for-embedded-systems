@@ -16,8 +16,6 @@
 # along with DSFES.  If not, see <https://www.gnu.org/licenses/>.             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-add_subdirectory(counter)
-add_subdirectory(gpio)
-add_subdirectory(queue)
-add_subdirectory(stack)
-add_subdirectory(statemachine)
+file(GLOB source_files "./*.c")
+add_executable(statemachine_example ${source_files})
+target_link_libraries(statemachine_example statemachine)
