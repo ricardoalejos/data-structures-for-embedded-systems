@@ -62,7 +62,7 @@ StaMac_tRetVal StaMac_fEvent(StaMac_t * iStaMac, const uint8_t * iEvent, void * 
         return STA_MAC__C_ERROR_INVALID_EVENT;
     }
 
-    if(iStaMac->vStateTable[vStateIndex].vTransitions[vEventIndex].fCallback(ioEventArguments) != 0)
+    if(iStaMac->vStateTable[vStateIndex].vTransitions[vEventIndex].fHandler(ioEventArguments) != 0)
     {
         PRV__M_TRY_SEM_GIVE(iStaMac);
         return STA_MAC__C_ERROR_TRANSITION_HANDLER;

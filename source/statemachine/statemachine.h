@@ -51,7 +51,7 @@ typedef struct StaMac_sTransition
 {
     const uint8_t * const vEvent;
     const uint8_t * const vTargetState;
-    StaMac_tCallback fCallback; 
+    StaMac_tCallback fHandler; 
 } StaMac_tTransition;
 
 typedef struct StaMac_sState

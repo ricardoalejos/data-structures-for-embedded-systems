@@ -28,12 +28,12 @@ StaMac_t ExampleStateMachine = {
             .vTransitions = (StaMac_tTransition []){
                 {
                     .vEvent = "EventX",
-                    .fCallback = fGenericTransitionHandler,
+                    .fHandler = fGenericTransitionHandler,
                     .vTargetState = "StateB"
                 },
                 {
                     .vEvent = "EventY",
-                    .fCallback = fGenericTransitionHandler,
+                    .fHandler = fGenericTransitionHandler,
                     .vTargetState = "StateA"
                 }
             }
@@ -45,12 +45,12 @@ StaMac_t ExampleStateMachine = {
             .vTransitions = (StaMac_tTransition []){
                 {
                     .vEvent = "EventX",
-                    .fCallback = fGenericTransitionHandler,
+                    .fHandler = fGenericTransitionHandler,
                     .vTargetState = "StateA"
                 },
                 {
                     .vEvent = "EventY",
-                    .fCallback = fGenericTransitionHandler,
+                    .fHandler = fGenericTransitionHandler,
                     .vTargetState = "StateB"
                 }
             }
