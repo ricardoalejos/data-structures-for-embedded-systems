@@ -16,6 +16,7 @@
 # along with DSFES.  If not, see <https://www.gnu.org/licenses/>.             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+add_subdirectory(commands)
 add_subdirectory(queue)
 add_subdirectory(stack)
 add_subdirectory(gpio)

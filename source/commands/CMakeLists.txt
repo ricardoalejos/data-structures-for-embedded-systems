@@ -16,9 +16,9 @@
 # along with DSFES.  If not, see <https://www.gnu.org/licenses/>.             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-add_subdirectory(commands)
-add_subdirectory(counter)
-add_subdirectory(gpio)
-add_subdirectory(queue)
-add_subdirectory(stack)
-add_subdirectory(statemachine)
+set(module_name commands)
+file(GLOB source_files "./*.c")
+file(GLOB header_files "./*.h")
+add_library(${module_name} ${source_files})
+set_target_properties(${module_name} PROPERTIES PUBLIC_HEADER ${header_files})
+INSTALL(TARGETS ${module_name} DESTINATION ${project_root}/lib PUBLIC_HEADER DESTINATION ${project_root}/include)
